@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      padding: 20px;
+      color: #fff;
+    }
+
+    h1.app-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #a0b4d6;
+      margin-bottom: 28px;
+    }
+
+    /* Search bar */
+    #search-bar {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 20px;
+    }
+
+    #city-input {
+      flex: 1;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    #city-input::placeholder { color: rgba(255,255,255,0.4); }
+
+    #city-input:focus {
+      background: rgba(255,255,255,0.15);
+      box-shadow: 0 0 0 2px rgba(100,160,255,0.5);
+    }
+
+    #search-btn {
+      padding: 14px 22px;
+      border: none;
+      border-radius: 12px;
+      background: #4f8ef7;
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    #search-btn:hover { background: #3a7de8; }
+    #search-btn:active { transform: scale(0.97); }
+
+    /* Error */
+    #error-msg {
+      width: 100%;
+      max-width: 420px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: rgba(255, 80, 80, 0.2);
+      border: 1px solid rgba(255,100,100,0.4);
+      color: #ffaaaa;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    /* Spinner */
+    #spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top-color: #4f8ef7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 20px 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Weather card */
+    #weather-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 32px 28px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      animation: fadeIn 0.35s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    #weather-icon {
+      font-size: 4rem;
+      display: block;
+      margin-bottom: 10px;
+      line-height: 1;
+    }
+
+    #city-name {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #e8f0fe;
+    }
+
+    #country-name {
+      font-size: 0.9rem;
+      color: #a0b4d6;
+      margin-top: 2px;
+    }
+
+    #description {
+      font-size: 1rem;
+      color: #c0d0ea;
+      margin-top: 6px;
+      text-transform: capitalize;
+    }
+
+    /* Temperature */
+    .temp-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    #temp-value {
+      font-size: 4rem;
+      font-weight: 700;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .unit-toggle {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .unit-toggle button {
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.85rem;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .unit-toggle button.active {
+      background: #4f8ef7;
+      border-color: #4f8ef7;
+      color: #fff;
+    }
+
+    .unit-toggle button:hover:not(.active) {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    /* Details grid */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .detail-tile {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    .detail-tile .tile-icon { font-size: 1.3rem; }
+
+    .detail-tile .tile-label {
+      font-size: 0.68rem;
+      color: #8a9bbf;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 4px 0 2px;
+    }
+
+    .detail-tile .tile-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #d8e6ff;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 480px) {
+      #weather-card { padding: 24px 18px; }
+      .details-grid { grid-template-columns: repeat(2, 1fr); }
+      #temp-value { font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1 class="app-title">Weather</h1>
+
+  <div id="search-bar">
+    <input type="text" id="city-input" placeholder="Enter a city name..." autocomplete="off" />
+    <button id="search-btn">Search</button>
+  </div>
+
+  <div id="error-msg" class="hidden"></div>
+  <div id="spinner" class="hidden"></div>
+
+  <div id="weather-card" class="hidden">
+    <div class="card-header">
+      <span id="weather-icon"></span>
+      <h2 id="city-name"></h2>
+      <p id="country-name"></p>
+      <p id="description"></p>
+    </div>
+
+    <div class="temp-row">
+      <span id="temp-value"></span>
+      <div class="unit-toggle">
+        <button id="btn-c" class="active">°C</button>
+        <button id="btn-f">°F</button>
+      </div>
+    </div>
+
+    <div class="details-grid">
+      <div class="detail-tile">
+        <div class="tile-icon">🌡️</div>
+        <div class="tile-label">Feels Like</div>
+        <div class="tile-value" id="feels-like"></div>
+      </div>
+      <div class="detail-tile">
+        <div class="tile-icon">💧</div>
+        <div class="tile-label">Humidity</div>
+        <div class="tile-value" id="humidity"></div>
+      </div>
+      <div class="detail-tile">
+        <div class="tile-icon">💨</div>
+        <div class="tile-label">Wind</div>
+        <div class="tile-value" id="wind"></div>
+      </div>
+      <div class="detail-tile">
+        <div class="tile-icon">👁️</div>
+        <div class="tile-label">Visibility</div>
+        <div class="tile-value" id="visibility"></div>
+      </div>
+      <div class="detail-tile">
+        <div class="tile-icon">🔵</div>
+        <div class="tile-label">Pressure</div>
+        <div class="tile-value" id="pressure"></div>
+      </div>
+      <div class="detail-tile">
+        <div class="tile-icon">🌞</div>
+        <div class="tile-label">UV Index</div>
+        <div class="tile-value" id="uv-index"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let lastData = null;
+    let unit = 'c';
+
+    const $ = id => document.getElementById(id);
+
+    function showError(msg) {
+      $('error-msg').textContent = msg;
+      $('error-msg').classList.remove('hidden');
+      $('weather-card').classList.add('hidden');
+    }
+
+    function hideError() {
+      $('error-msg').classList.add('hidden');
+    }
+
+    function updateTempDisplay() {
+      if (!lastData) return;
+      if (unit === 'c') {
+        $('temp-value').textContent = lastData.temp_c + '°C';
+        $('feels-like').textContent = lastData.feels_like_c + '°C';
+      } else {
+        $('temp-value').textContent = lastData.temp_f + '°F';
+        $('feels-like').textContent = lastData.feels_like_f + '°F';
+      }
+    }
+
+    function renderCard(data) {
+      lastData = data;
+      $('weather-icon').textContent  = data.icon;
+      $('city-name').textContent     = data.city;
+      $('country-name').textContent  = data.country;
+      $('description').textContent   = data.description;
+      $('humidity').textContent      = data.humidity + '%';
+      $('wind').textContent          = data.wind_kmph + ' km/h ' + data.wind_dir;
+      $('visibility').textContent    = data.visibility_km + ' km';
+      $('pressure').textContent      = data.pressure_mb + ' mb';
+      $('uv-index').textContent      = data.uv_index;
+      updateTempDisplay();
+      $('weather-card').classList.remove('hidden');
+    }
+
+    async function fetchWeather(city) {
+      hideError();
+      $('weather-card').classList.add('hidden');
+      $('spinner').classList.remove('hidden');
+
+      try {
+        const resp = await fetch('/api/weather?city=' + encodeURIComponent(city));
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          showError(data.error || 'Something went wrong.');
+        } else {
+          renderCard(data);
+        }
+      } catch (err) {
+        showError('Network error. Check your connection.');
+      } finally {
+        $('spinner').classList.add('hidden');
+      }
+    }
+
+    $('search-btn').addEventListener('click', () => {
+      const city = $('city-input').value.trim();
+      if (city) fetchWeather(city);
+    });
+
+    $('city-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const city = $('city-input').value.trim();
+        if (city) fetchWeather(city);
+      }
+    });
+
+    $('btn-c').addEventListener('click', () => {
+      unit = 'c';
+      $('btn-c').classList.add('active');
+      $('btn-f').classList.remove('active');
+      updateTempDisplay();
+    });
+
+    $('btn-f').addEventListener('click', () => {
+      unit = 'f';
+      $('btn-f').classList.add('active');
+      $('btn-c').classList.remove('active');
+      updateTempDisplay();
+    });
+
+    // Default city on load
+    fetchWeather('London');
+  </script>
+</body>
+</html>
